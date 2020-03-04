@@ -244,7 +244,7 @@ public class Assembler {
 			for (int i=0; i < opCodes.size(); i++) {
 				try {
 					if (pieces[1].equals(opCodes.get(i))) {
-//						System.out.println("Line contains: " + opCodes.get(i));
+						System.out.println("Line contains: " + opCodes.get(i));
 						line = logicLineToBinary(pieces);
 						content += line;
 						System.out.println("Binary line added: " + line);
@@ -261,7 +261,7 @@ public class Assembler {
 		}
 		
 		// Add the last CBZ line
-		content += "00000000000000000000000000101011";  
+		content += "00000000000000000000001000101011";  
 		
 		// Write the converted booleans to a text file 
 		
@@ -270,7 +270,7 @@ public class Assembler {
 			out.write(Integer.toString(content.length()/8));
 			out.newLine();
 			for (int i = 0; i < content.length()-7; i++) {
-				System.out.println("i is " + Integer.toString(i));
+				//System.out.println("i is " + Integer.toString(i));
 				if ((i%8) == 0) {
 						String bite = content.substring(i,i+8);
 						//System.out.println(bite);
@@ -359,18 +359,26 @@ public class Assembler {
 			opcode = "01000011111";
 			dest = boolToBin(uDecToBin(Long.parseLong(input[2].substring(1)), 5));
 			base = boolToBin(uDecToBin(Long.parseLong(input[3].substring(2)), 5));
-			immediate = boolToBin(uDecToBin(Long.parseLong(input[4].substring(1,2)), 9));
+			//immediate = boolToBin(uDecToBin(Long.parseLong(input[4].substring(1,2)), 9));
+			immediate = boolToBin(uDecToBin(Long.parseLong(extractNumAsString(input[4])), 9));
+			result = dest + base + "00" + immediate + opcode;
 		} else if (input[1].equals("STR")) {
 			opcode = "00000011111";
 			dest = boolToBin(uDecToBin(Long.parseLong(input[2].substring(1)), 5));
 			base = boolToBin(uDecToBin(Long.parseLong(input[3].substring(2)), 5));
-			immediate = boolToBin(uDecToBin(Long.parseLong(input[4].substring(1,2)), 9));
+			//immediate = boolToBin(uDecToBin(Long.parseLong(input[4].substring(1,2)), 9));
+			immediate = boolToBin(uDecToBin(Long.parseLong(extractNumAsString(input[4])), 9));
+			System.out.println("Equals STR");
+			result = dest + base + "00" + immediate + opcode;
 		} else if (input[1].equals("CBZ")) {
 			opcode = "00101101";
-			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(1).offset)), 19));
+			dest = boolToBin(uDecToBin(Long.parseLong(input[2].substring(1)), 5));
+			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(0).offset)), 19));
+			result = dest + immediate + opcode;
 		} else if (input[1].equals("B")) {
 			opcode = "101000";
-			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(2).offset)), 26));
+			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(1).offset)), 26));
+			result = immediate + opcode;
 		} 
     	
 		System.out.println("op code: " + opcode);
@@ -378,10 +386,24 @@ public class Assembler {
 		System.out.println("base: " + base);
 		System.out.println("dest: " + dest);
 		
-		result = dest + base + "00" + immediate + opcode;
+		// result = dest + base + "00" + immediate + opcode;
 		
     	return result;
     }
+    
+    /**
+     * Method uses a regex to extract a single number from a String 
+     * @param input
+     * @return
+     */
+    public static String extractNumAsString(String input) {
+//    	System.out.println("Input: "+input);
+    	String result = "";
+    	result = input.replaceAll("[^0-9]", "");
+//    	System.out.println("result is: "+result);
+    	return result;
+    }
+    
     
     public static boolean[] uDecToBin(long d, int bits) {
         // Throw exception if the number can't fit into a given number of bits
@@ -423,26 +445,39 @@ public class Assembler {
     }
     
     public static void main(String[] args) {
-    	Assembler object = new Assembler();
     	
     	String progOneFile = "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s";
     	
     	try {
-    		ArrayList<LabelOffset> placeHolder1 = object.pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
+    		ArrayList<LabelOffset> placeHolder1 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
 					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1.txt");
-				object.pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
+				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
 						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1.txt", placeHolder1);
 				
-			ArrayList<LabelOffset> placeHolder2 = object.pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
+			ArrayList<LabelOffset> placeHolder2 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
 					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2.txt");
-				object.pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
+				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
 						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2.txt", placeHolder2);
 			
-			ArrayList<LabelOffset> placeHolder3 = object.pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
+			ArrayList<LabelOffset> placeHolder3 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
 					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3.txt");
-				object.pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
+				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
 						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3.txt", placeHolder3);
+				
+			ArrayList<LabelOffset> placeHolderAll = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
+					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll.txt");
+				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
+						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll.txt", placeHolderAll);
 			
+				/*
+		    	for (int i = 0; i < placeHolder3.size()-1; i++) {
+		    		//System.out.println(placeHolder3.get(i).label);
+		    		//System.out.println(placeHolder3.get(placeHolder3.indexOf(placeHolder3.get(i).label)).offset);
+		    	}
+		    	System.out.println(placeHolder3.get(0).label);
+		    	System.out.println(placeHolder3.get(0).offset);
+		    	*/
+				
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -450,5 +485,7 @@ public class Assembler {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	
+    	
     }
 }
