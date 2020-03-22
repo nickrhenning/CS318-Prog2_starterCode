@@ -33,7 +33,7 @@ public class Assembler {
     /**
     * First pass of the assembler. Writes the number of bytes in the data segment
     * and code segment to their respective output files. Returns a list of
-    * code segment labels and thier relative offsets.
+    * code segment labels and their relative offsets.
     *
     * @param inFile The pathname of the file containing assembly language code.
     * @param dataFile The pathname for the data segment binary file.
@@ -222,13 +222,111 @@ public class Assembler {
 
     public static void pass2(String inFile, String dataFile, String codeFile,
                     ArrayList<LabelOffset> labels) throws FileNotFoundException, IOException {
+    	writeDataFile(inFile, dataFile, labels);
+        writeCodeFile(inFile, codeFile, labels);
 
-        // Dictionary<String, String> regexDict = new Hashtable<String, String>();
-        // regexDict.put("ADD", )
-        
-		/*
-		 * Assemble instructions
-		 */
+    }
+    
+    
+    /**
+     * Assemble the instructions for data output file and write them to a file 
+     * @param inFile
+     * @param dataFile
+     * @param labels
+     */
+    public static void writeDataFile(String inFile, String dataFile, ArrayList<LabelOffset> labels) 
+    		throws FileNotFoundException, IOException {
+		
+		
+		Scanner in = new Scanner(new File(inFile));
+		
+		String value = in.next();
+		
+		in.nextLine();
+		
+		int count = 2;
+		int numberCount=1; 
+		ArrayList<Integer> numList=new ArrayList<Integer>();
+		int wordCount = 0;
+		while(in.hasNextLine()){
+			String line = in.nextLine();
+			String numbers[]=line.split("[\\s,]+"); //splits for commas and spaces
+			String noSpaces[]=new String[numbers.length];
+			
+			int countNum=0;
+			
+			int numListCount=0;
+			for(int i=0;i<numbers.length;i++) {
+				if(numbers[i]!=" ") {
+					noSpaces[numListCount]=numbers[i];
+					//System.out.println("noSpaces at index " + Integer.toString(numListCount) + " is " + noSpaces[numListCount]);
+					numListCount++;
+				}
+			}
+			
+			for(int i=1;i<numbers.length;i++) { //only counting indexes that start with a number or - sign
+				if(numbers[i].charAt(0)=='-' || numbers[i].charAt(0)=='0' || numbers[i].charAt(0)=='1' || numbers[i].charAt(0)=='2' ||numbers[i].charAt(0)=='3' ||numbers[i].charAt(0)=='4' ||numbers[i].charAt(0)=='5' ||numbers[i].charAt(0)=='6' ||numbers[i].charAt(0)=='7' ||numbers[i].charAt(0)=='8' ||numbers[i].charAt(0)=='9') {
+					wordCount++;
+					numList.add(Integer.parseInt(numbers[i]));
+					countNum++;
+					
+				}
+			}
+			
+			count++;
+		}
+		for(int i=0;i<numList.size();i++) {
+			System.out.println("NumList at index " + Integer.toString(i) + " is " + numList.get(i));
+		}
+		
+		
+		ArrayList<Boolean> numBin= new ArrayList<Boolean>(); //going to use to put the true false code in
+		for(int i=0;i<numList.size();i++) {  //for loop to go through each number and convert to boolean statememtns 
+			if(numList.get(i)<0) { //if number is negative it performs 2's complement
+				sDecToBin(numList.get(i), 32);
+				System.out.println("NUMBER "+numberCount);
+				for(int j=31;j>=0;j--) {//new line after every 8 boolean statements
+					if(j==23||j==15||j==7) {
+						System.out.println();
+					}
+					System.out.print(sDecToBin(numList.get(i), 32)[j]+", ");
+				}
+				System.out.println();
+				
+				numberCount++;
+			}if(numList.get(i)>=0) {//if number is positive just converts to boolean
+				uDecToBin(numList.get(i), 32);
+				System.out.println("NUMBER "+numberCount);
+				for(int j=31;j>=0;j--) {
+					if(j==23||j==15||j==7) {
+						System.out.println();
+					}
+					System.out.print(uDecToBin(numList.get(i), 32)[j]+", ");
+				}
+				System.out.println();
+				
+				numberCount++;
+			}
+		}
+		 
+		wordCount=wordCount*4;
+		System.out.println(wordCount);
+		in.close();
+	
+    }
+    
+    
+    /**
+     * Assemble the instructions for code output file and write them to a file 
+     * @param inFile
+     * @param codeFile
+     * @param labels
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static void writeCodeFile(String inFile, String codeFile, ArrayList<LabelOffset> labels) 
+    		throws FileNotFoundException, IOException {
+
 		Scanner in = new Scanner(new File(inFile));
 		String value = in.next();
 		in.nextLine();
@@ -285,6 +383,13 @@ public class Assembler {
 		}
     }
     
+    
+    /**
+     * Takes an input string such as 1010 and converts it to
+     * true false true false
+     * @param input
+     * @return
+     */
     public static String stringToBoolList(String input) {
     	String result = "";
 //    	System.out.println("input is: " + input);
@@ -344,6 +449,12 @@ public class Assembler {
     }
     
     
+    /**
+     * Converts a line with operand LDR, STR, CBZ, or B and outputs it's binary equivalent
+     * @param input
+     * @param labels
+     * @return
+     */
     public static String otherLineToBinary(String[] input, ArrayList<LabelOffset> labels) {
     	String result = "";
     	String opcode = "", immediate = "", base = "", dest = "";
@@ -404,7 +515,12 @@ public class Assembler {
     	return result;
     }
     
-    
+    /**
+     * Converts unsigned decimal to binary
+     * @param d
+     * @param bits
+     * @return
+     */
     public static boolean[] uDecToBin(long d, int bits) {
         // Throw exception if the number can't fit into a given number of bits
         if (Math.abs(d) > Math.abs(Math.pow(2,bits))) {
@@ -432,6 +548,11 @@ public class Assembler {
         return arr;
       }
     
+    /**
+     * Converts an array of boolean values into a binary string 
+     * @param reg
+     * @return
+     */
     public static String boolToBin(boolean reg[]) {
 		String src = "";
     	for (int i = reg.length-1; i >= 0; i--) {
@@ -444,31 +565,83 @@ public class Assembler {
     	return src;
     }
     
+    /**
+    * Converts a signed decimal number to two's complement binary
+    *
+    * @param d The decimal value
+    * @param bits The number of bits to use for the binary number.
+    * @return The equivalent two's complement binary representation.
+    * @exception IllegalArgumentException Parameter is outside valid range that can be represented with the given number of bits.
+    */
+    public static boolean[] sDecToBin(long d, int bits) {
+      // Throw exception if the number can't fit into a given number of bits
+      if (Math.abs(d) > Math.abs(Math.pow(2,bits-2))) {
+        throw new IllegalArgumentException("ERROR: long cannot fit into the number of bits.");
+      }
+
+      boolean[] arr = new boolean[bits];  //array for results
+      int num = (int)d;
+      num = num * -1;
+      int binary[] = new int[40];
+      int index = 0;
+      // Iterate to put 1's and 0's into an intermediate array
+      while(num > 0){
+        binary[index++] = num%2;
+        num = num/2;
+      }
+
+      // Iterate through the array to set the binary word
+      boolean oneFound = false;
+      for(int i= 0; i < bits-1; i++) {
+        if (oneFound==false){
+          if (binary[i]==1){
+            arr[bits-i-1]=true;
+            oneFound=true;
+          } else {
+            arr[bits-i-1]=false;
+          }
+        } else if (oneFound==true){
+          if (binary[i]==1){
+            arr[bits-i-1]=false;
+          } else {
+            arr[bits-i-1]=true;
+          }
+        }
+      }
+
+      // Set the sign of the binary word
+      if (d < 0) {
+        arr[0] = true;
+      } else {
+        arr[0] = false;
+      }
+
+      return arr;
+    }
+    
     public static void main(String[] args) {
-    	
-    	String progOneFile = "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s";
-    	
+    	    	
     	try {
     		ArrayList<LabelOffset> placeHolder1 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
-					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1.txt");
-				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
-						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1.txt", placeHolder1);
+    				"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_code.txt");
+				 pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
+						 "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_code.txt", placeHolder1);
 				
 			ArrayList<LabelOffset> placeHolder2 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
-					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2.txt");
-				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
-						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2.txt", placeHolder2);
-			
+					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_code.txt");
+				// pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
+						// "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_code.txt", placeHolder2);
+			/*
 			ArrayList<LabelOffset> placeHolder3 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
-					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3.txt");
+					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_code.txt");
 				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
-						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3.txt", placeHolder3);
+						"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_code.txt", placeHolder3);
 				
 			ArrayList<LabelOffset> placeHolderAll = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
-					 "", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll.txt");
+					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_code.txt");
 				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
-						"", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll.txt", placeHolderAll);
-			
+						"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_code.txt", placeHolderAll);
+			*/
 				/*
 		    	for (int i = 0; i < placeHolder3.size()-1; i++) {
 		    		//System.out.println(placeHolder3.get(i).label);
