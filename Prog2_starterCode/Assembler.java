@@ -13,6 +13,8 @@ import java.util.*;
 
 public class Assembler {
 
+	public static int codeSize = 0;
+	
     /**
     * Assembles the code file. When this method is finished, the dataFile and
     * codeFile contain the assembled data segment and code segment, respectively.
@@ -71,7 +73,7 @@ public class Assembler {
 		}
 		
 		wordCount=wordCount*4;
-		System.out.println("Size of the data file is " + Integer.toString(wordCount));  // Verify result
+		//System.out.println("Size of the data file is " + Integer.toString(wordCount));  // Verify result
 		in.close();
 		
 		/*
@@ -91,7 +93,7 @@ public class Assembler {
 			String numbers[]=line.split("[\\s,]+"); //splits for commas and spaces
 			
 			try {
-				System.out.println("0 is " + numbers[1]);  // Verify result
+				//System.out.println("0 is " + numbers[1]);  // Verify result
 				ArrayList<String> opArr = new ArrayList<>(Arrays.asList("ADD", "SUB", "AND", "ORR", "LDR", "STR", "CBZ", "B"));
 				if (opArr.contains(numbers[1])) {
 					regCount++;
@@ -103,7 +105,7 @@ public class Assembler {
 		}
 		
 		// Multiply register count by 4 to get number of bytes for all unique registers
-		int codeSize = regCount * 4;
+		codeSize = regCount * 4;
 		codeSize = codeSize + 4;
 		System.out.println("Size of the code file is " + Integer.toString(codeSize));  // Verify result
 		in.close();
@@ -132,6 +134,9 @@ public class Assembler {
 			} 
 			
 			// Initialize values of labels map with label and current line offset
+			
+			
+			
 			for (int i = 0; i < numbers.length; i++) {
 				//System.out.println(numbers[i]);
 				// Get current position of instruction
@@ -154,7 +159,27 @@ public class Assembler {
 				}
 			}
 			
-			if (!numbers[0].equals("afterif:") && !numbers[0].equals("if:")) {
+			
+			
+			/*
+			for (int i = 0; i < numbers.length; i++) {
+				System.out.println(numbers[i]);
+				// Get current position of instruction
+				if (numbers[i].length() > 2) {
+					if ((numbers[i] == "if") || (numbers[i] == "afterif") || (numbers[i].substring(0, numbers[i].length()-2) == "label")) {
+						labelsOne.put(numbers[i], offset);
+						System.out.println(numbers[i] + " added with offset " + Integer.toString(offset));
+					}
+				}
+				// Overwrite labelsOne with instruction - currentposition
+				if (labelsOne.containsValue(numbers[i].substring(0, numbers[i].length()-1))) {
+					
+				}
+				
+			}
+			*/
+			
+			if (!numbers[0].equals("afterif:") && !numbers[0].equals("labelA:") && !numbers[0].equals("labelB:") && !numbers[0].equals("labelC:") && !numbers[0].equals("labelD:") && !numbers[0].equals("if:")) {
 				offset += 4;				
 			}
 
@@ -200,6 +225,7 @@ public class Assembler {
 			BufferedWriter out = new BufferedWriter(new FileWriter(codeFile));
 			out.write(Integer.toString(codeSize));
 			out.close();
+			//System.exit(0);
 		} catch (IOException e) {
 			System.out.println(e.getMessage());
 		}
@@ -222,7 +248,7 @@ public class Assembler {
 
     public static void pass2(String inFile, String dataFile, String codeFile,
                     ArrayList<LabelOffset> labels) throws FileNotFoundException, IOException {
-    	writeDataFile(inFile, dataFile, labels);
+    	// writeDataFile(inFile, dataFile, labels);
         writeCodeFile(inFile, codeFile, labels);
 
     }
@@ -276,42 +302,56 @@ public class Assembler {
 			count++;
 		}
 		for(int i=0;i<numList.size();i++) {
-			System.out.println("NumList at index " + Integer.toString(i) + " is " + numList.get(i));
+			//System.out.println("NumList at index " + Integer.toString(i) + " is " + numList.get(i));
 		}
 		
 		
-		ArrayList<Boolean> numBin= new ArrayList<Boolean>(); //going to use to put the true false code in
+		BufferedWriter out = new BufferedWriter(new FileWriter(dataFile));
+		
 		for(int i=0;i<numList.size();i++) {  //for loop to go through each number and convert to boolean statememtns 
+			boolean[] numBin= new boolean[32]; //going to use to put the true false code in
+			
+			// Convert numbers from numList into boolean array
 			if(numList.get(i)<0) { //if number is negative it performs 2's complement
 				sDecToBin(numList.get(i), 32);
-				System.out.println("NUMBER "+numberCount);
-				for(int j=31;j>=0;j--) {//new line after every 8 boolean statements
-					if(j==23||j==15||j==7) {
-						System.out.println();
-					}
-					System.out.print(sDecToBin(numList.get(i), 32)[j]+", ");
+				//System.out.println("NUMBER "+numberCount);
+				for(int j=31;j>=0;j--) {
+					numBin[j] = sDecToBin(numList.get(j), 32)[j];
 				}
-				System.out.println();
+				//System.out.println();
 				
 				numberCount++;
 			}if(numList.get(i)>=0) {//if number is positive just converts to boolean
 				uDecToBin(numList.get(i), 32);
-				System.out.println("NUMBER "+numberCount);
+				// System.out.println("NUMBER "+numberCount);
 				for(int j=31;j>=0;j--) {
-					if(j==23||j==15||j==7) {
-						System.out.println();
-					}
-					System.out.print(uDecToBin(numList.get(i), 32)[j]+", ");
+					numBin[j] = sDecToBin(numList.get(j), 32)[j];
 				}
-				System.out.println();
+				//System.out.println();
 				
 				numberCount++;
 			}
+			
+			// Convert boolean array into string and write it to data file 
+			try {
+				out.write(Integer.toString(numList.size()*8));
+				out.newLine();
+				for (int j=0; j< numBin.length; j++) {
+					out.write(String.valueOf(numBin[j]));
+					if(j==23||j==15||j==7) {
+						out.newLine();
+					}
+				}
+			} catch (Exception e) {
+				System.out.println(e.getMessage());;
+			}
+			
 		}
 		 
 		wordCount=wordCount*4;
-		System.out.println(wordCount);
+		//System.out.println(wordCount);
 		in.close();
+		out.close();
 	
     }
     
@@ -337,12 +377,19 @@ public class Assembler {
 			String line = in.nextLine();
 			String pieces[]=line.split("[\\s,]+"); //splits for commas and spaces
 			
+			System.out.println("Line being processed: " + line);
+			try {
+				System.out.println("pices[1] is " + pieces[1]);
+			} catch (Exception e) {
+				continue;
+			}
 			ArrayList<String> opCodes = new ArrayList<>(Arrays.asList("ADD", "SUB", "AND", "ORR"));
 			ArrayList<String> otherCodes = new ArrayList<>(Arrays.asList("LDR", "STR", "CBZ", "B"));
 			for (int i=0; i < opCodes.size(); i++) {
+				// System.out.println("i is " + Integer.toString(i));
 				try {
 					if (pieces[1].equals(opCodes.get(i))) {
-						System.out.println("Line contains: " + opCodes.get(i));
+						//System.out.println("Line contains: " + opCodes.get(i));
 						line = logicLineToBinary(pieces);
 						content += line;
 						System.out.println("Binary line added: " + line);
@@ -352,7 +399,8 @@ public class Assembler {
 						content += line;
 						System.out.println("Binary line added: " + line);
 					}
-				} catch (Exception e) {
+				} catch (IndexOutOfBoundsException e) {
+					// throw new IndexOutOfBoundsException(e.getMessage());
 					continue;
 				}
 			}
@@ -365,7 +413,8 @@ public class Assembler {
 		
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(codeFile));
-			out.write(Integer.toString(content.length()/8));
+			//out.write(Integer.toString(content.length()/8));
+			out.write(Integer.toString(codeSize));
 			out.newLine();
 			for (int i = 0; i < content.length()-7; i++) {
 				//System.out.println("i is " + Integer.toString(i));
@@ -463,7 +512,7 @@ public class Assembler {
 //    	System.exit(0);
     	
 		for (int i = 0; i < input.length; i++) {
-			System.out.println(Integer.toString(i) + ":" +input[i]);
+			//System.out.println(Integer.toString(i) + ":" +input[i]);
 		}
     	
 		if (input[1].equals("LDR")) {
@@ -479,23 +528,27 @@ public class Assembler {
 			base = boolToBin(uDecToBin(Long.parseLong(input[3].substring(2)), 5));
 			//immediate = boolToBin(uDecToBin(Long.parseLong(input[4].substring(1,2)), 9));
 			immediate = boolToBin(uDecToBin(Long.parseLong(extractNumAsString(input[4])), 9));
-			System.out.println("Equals STR");
+			//System.out.println("Equals STR");
 			result = dest + base + "00" + immediate + opcode;
 		} else if (input[1].equals("CBZ")) {
 			opcode = "00101101";
 			dest = boolToBin(uDecToBin(Long.parseLong(input[2].substring(1)), 5));
 			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(0).offset)), 19));
+			//long test = 0;
+			//immediate = boolToBin(uDecToBin(test, 19));
 			result = dest + immediate + opcode;
 		} else if (input[1].equals("B")) {
 			opcode = "101000";
 			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(1).offset)), 26));
+			//long test = 0;
+			//immediate = boolToBin(uDecToBin(test, 19));
 			result = immediate + opcode;
 		} 
     	
-		System.out.println("op code: " + opcode);
-		System.out.println("immediate: " + immediate);
-		System.out.println("base: " + base);
-		System.out.println("dest: " + dest);
+		//System.out.println("op code: " + opcode);
+		//System.out.println("immediate: " + immediate);
+		//System.out.println("base: " + base);
+		//System.out.println("dest: " + dest);
 		
 		// result = dest + base + "00" + immediate + opcode;
 		
@@ -622,6 +675,7 @@ public class Assembler {
     public static void main(String[] args) {
     	    	
     	try {
+    		
     		ArrayList<LabelOffset> placeHolder1 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
     				"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_code.txt");
 				 pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
@@ -629,19 +683,19 @@ public class Assembler {
 				
 			ArrayList<LabelOffset> placeHolder2 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
 					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_code.txt");
-				// pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
-						// "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_code.txt", placeHolder2);
-			/*
+				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg2.s",
+						 "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output2_code.txt", placeHolder2);
+			
 			ArrayList<LabelOffset> placeHolder3 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
 					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_code.txt");
 				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
 						"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_code.txt", placeHolder3);
-				
+			
 			ArrayList<LabelOffset> placeHolderAll = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
 					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_code.txt");
 				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
 						"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_code.txt", placeHolderAll);
-			*/
+			
 				/*
 		    	for (int i = 0; i < placeHolder3.size()-1; i++) {
 		    		//System.out.println(placeHolder3.get(i).label);
