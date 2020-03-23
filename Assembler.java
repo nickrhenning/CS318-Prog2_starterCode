@@ -13,6 +13,8 @@ import java.util.*;
 
 public class Assembler {
 
+	public static int codeSize = 0;
+	
     /**
     * Assembles the code file. When this method is finished, the dataFile and
     * codeFile contain the assembled data segment and code segment, respectively.
@@ -103,9 +105,9 @@ public class Assembler {
 		}
 		
 		// Multiply register count by 4 to get number of bytes for all unique registers
-		int codeSize = regCount * 4;
+		codeSize = regCount * 4;
 		codeSize = codeSize + 4;
-		//System.out.println("Size of the code file is " + Integer.toString(codeSize));  // Verify result
+		System.out.println("Size of the code file is " + Integer.toString(codeSize));  // Verify result
 		in.close();
 		
 		/*
@@ -223,6 +225,7 @@ public class Assembler {
 			BufferedWriter out = new BufferedWriter(new FileWriter(codeFile));
 			out.write(Integer.toString(codeSize));
 			out.close();
+			//System.exit(0);
 		} catch (IOException e) {
 			System.out.println(e.getMessage());
 		}
@@ -374,23 +377,32 @@ public class Assembler {
 			String line = in.nextLine();
 			String pieces[]=line.split("[\\s,]+"); //splits for commas and spaces
 			
+			System.out.println("Line being processed: " + line);
+			try {
+				System.out.println("pices[1] is " + pieces[1]);
+			} catch (Exception e) {
+				continue;
+			}
 			ArrayList<String> opCodes = new ArrayList<>(Arrays.asList("ADD", "SUB", "AND", "ORR"));
 			ArrayList<String> otherCodes = new ArrayList<>(Arrays.asList("LDR", "STR", "CBZ", "B"));
 			for (int i=0; i < opCodes.size(); i++) {
+				// System.out.println("i is " + Integer.toString(i));
 				try {
 					if (pieces[1].equals(opCodes.get(i))) {
 						//System.out.println("Line contains: " + opCodes.get(i));
 						line = logicLineToBinary(pieces);
 						content += line;
-						//System.out.println("Binary line added: " + line);
+						System.out.println("Binary line added: " + line);
 					} else if (pieces[1].equals(otherCodes.get(i))) {
-						//System.out.println("Line contains: " + otherCodes.get(i));
+						System.out.println("Line contains: " + otherCodes.get(i));
 						line = otherLineToBinary(pieces, labels);
 						content += line;
-						//System.out.println("Binary line added: " + line);
+						System.out.println("Binary line added: " + line);
 					}
-				} catch (Exception e) {
-					continue;
+				} catch (IndexOutOfBoundsException e) {
+					// throw new IndexOutOfBoundsException(e.getMessage());
+					// continue;
+					e.printStackTrace();
 				}
 			}
 		}
@@ -402,7 +414,8 @@ public class Assembler {
 		
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(codeFile));
-			out.write(Integer.toString(content.length()/8));
+			//out.write(Integer.toString(content.length()/8));
+			out.write(Integer.toString(codeSize));
 			out.newLine();
 			for (int i = 0; i < content.length()-7; i++) {
 				//System.out.println("i is " + Integer.toString(i));
@@ -521,11 +534,15 @@ public class Assembler {
 		} else if (input[1].equals("CBZ")) {
 			opcode = "00101101";
 			dest = boolToBin(uDecToBin(Long.parseLong(input[2].substring(1)), 5));
-			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(0).offset)), 19));
+			//immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(0).offset)), 19));
+			long test = 0;
+			immediate = boolToBin(uDecToBin(test, 19));
 			result = dest + immediate + opcode;
 		} else if (input[1].equals("B")) {
 			opcode = "101000";
-			immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(1).offset)), 26));
+			//immediate = boolToBin(uDecToBin(Long.parseLong(Integer.toString(labels.get(1).offset)), 26));
+			long test = 0;
+			immediate = boolToBin(uDecToBin(test, 26));
 			result = immediate + opcode;
 		} 
     	
@@ -659,6 +676,7 @@ public class Assembler {
     public static void main(String[] args) {
     	    	
     	try {
+    		
     		ArrayList<LabelOffset> placeHolder1 = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
     				"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output1_code.txt");
 				 pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg1.s",
@@ -673,7 +691,7 @@ public class Assembler {
 					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_code.txt");
 				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testProg3.s",
 						"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/output3_code.txt", placeHolder3);
-				
+			
 			ArrayList<LabelOffset> placeHolderAll = pass1("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
 					"C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_data.txt", "C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/outputAll_code.txt");
 				pass2("C:/Users/nickh/OneDrive/Documents/CS318/Prog2_starterCode/Prog2_starterCode/testAllProg.s",
