@@ -362,16 +362,20 @@ public class CPU {
      		for(int i=16;i<21;i++) {
      			reg2[i-16]=instruction[i];
      		}
+     		registers.setRead1Reg(reg1);
+     		registers.setRead2reg(reg2);
      	}
      	if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
      		for(int i=5;i<10;i++) {
      			reg1[i-5]=instruction[i];
      		}
+     		registers.setRead1Reg(reg1);
      	}
      	if (Arrays.equals(opCodeCBZ, CBZ)) {
      		for(int i=5;i<10;i++) {
      			reg2[i-5]=instruction[i];
      		}
+     		registers.setRead2Reg(reg2);
      	}
     	if(Arrays.equals(opCode,hlt)) {
     		return true;
@@ -396,7 +400,18 @@ public class CPU {
     *
     */
     private void execute() {
-
+    	alu.activate();
+    	//If addition, subtraction, and, or or occures
+    	if(control.Reg2Loc== false & control.ALUSrc== false & control.RegWrite== true & 
+    			control.MemWrite== false & control.MemRead== false & control.ALUControl== 2 & 
+    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
+    		alu.setInputA(register.getReadReg1());
+    		alu.setInputB(register.getReadReg2());
+    		
+    		Binary.binToSDec(alu.getReadReg1());
+    			
+    		
+    	}
     }
 
     /**
