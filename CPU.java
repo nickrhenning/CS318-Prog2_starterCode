@@ -146,7 +146,7 @@ public class CPU {
         // Start the first cycle.
         boolean[] instruction = fetch();
 
-        // Example Test: Verify that when cycleCount is 0 the instruction returned by fetch is the
+        // Example Test: Verify that when cycleCount is 0 the insruction returned by fetch is the
         // binary version of the first instruction from testProg3.s ADD R9,R31,R31
         boolean[] firstInstr = {true,false,false,true,false,true,true,true,true,true,false,false,false,false,false,false,true,true,true,true,true,false,false,false,true,true,false,true,false,false,false,true};
         if(cycleCount == 0 && !Arrays.equals(instruction,firstInstr)) {
@@ -157,7 +157,7 @@ public class CPU {
 
 
         boolean op = decode(instruction);
-
+        System.out.println("CYCLE COUNT:   "+cycleCount);
         // Example Test: Verify that when cycleCount is 0 the control signals
         // are correctly set for an ADD instruction
         if(cycleCount == 0 && (control.Uncondbranch != false || control.RegWrite != true
@@ -165,7 +165,18 @@ public class CPU {
             || control.MemRead != false || control.Branch != false || control.ALUSrc != false
             || control.ALUControl != 2))
         {
-            System.out.println("FAIL: cycle " + cycleCount + " after decode, control lines incorrect");
+        	System.out.println("cycleCount:   "+cycleCount);
+        	System.out.println("control UncondBranch:   "+control.Uncondbranch);
+        	System.out.println("RegWrite:   "+control.RegWrite);
+        	System.out.println("Reg2Loc:   "+control.Reg2Loc);
+        	System.out.println("MemWrite:   "+control.MemWrite);
+        	System.out.println("MemtoReg:   "+control.MemtoReg);
+        	System.out.println("MemRead:   "+control.MemRead);
+        	System.out.println("Branch:   "+control.Branch);
+        	System.out.println("ALUSrc:   "+control.ALUSrc);
+        	System.out.println("ALUControl:   "+control.ALUControl);
+           
+        	System.out.println("FAIL: cycle " + cycleCount + " after decode, control lines incorrect");
         }
 
         // Loop until a halt instruction is decoded
@@ -183,15 +194,7 @@ public class CPU {
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 1, the ALU result is the correct
             // data memory address (should be 16)
-            if (cycleCount == 1) {
-            	if (control.ALUControl != 16) {
-            		System.out.println("Cycle 1: Incorrect ALU control. ALU Control was supposed to be 16 but is: " + Integer.toString(control.ALUControl));
-            	} else {
-            		System.out.println("Correct ALU Control of 16 at Cycle 1.");
-            	}
-            }
-            
-            
+
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 6, the branch adder's (adderBranch)
             // result is the offset of the branch destination instruction (should be 32)
@@ -221,9 +224,17 @@ public class CPU {
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 1, the the control signals are correctly
             // set for a LDR instruction
+            
+            if(cycleCount!= 1 && (control.Uncondbranch != false || control.RegWrite != true
+                    || control.Reg2Loc != false || control.MemWrite != false || control.MemtoReg != false
+                    || control.MemRead != true || control.Branch != false || control.ALUSrc != true
+                    || control.ALUControl != 2))
+                {
+            	System.out.println("FAIL: LDR cycle " + cycleCount + " after decode, control lines incorrect");
+                }
 
         }
-
+        
         System.out.println("CPU halt after " + cycleCount + " cycles.");
 
     }
@@ -239,6 +250,11 @@ public class CPU {
     * @return The instruction starting at address pc
     */
     private boolean[] fetch() {
+
+        // placeholder return so that starter code will build.
+        // student must replace with the instruction that is fetched.
+    	adderPC.activate();
+    	muxPC.setInput0(adderPC.getOutput());
         return instructionMemory.read32(pc);
     }
 
@@ -257,24 +273,25 @@ public class CPU {
     * @return false if the opcode is HLT; true for any other opcode
     */
     private boolean decode(boolean[] instruction) {
+    	System.out.println("Begin decode: program counter is: " + Long.toString(Binary.binToUDec(pc)));
     	
-    	// OpCode representations
-    	boolean[] add = {false, false, false, true, true, false, true, false, false, false, true};
-    	boolean[] sub = {false, false, false, true, true, false, true, false, false, true, true};
+    	/*
+    	 * Initialize opcodes and set control values 
+    	 */
+        boolean add[]= {false, false, false, true, true, false, true, false, false, false, true};
+        boolean[] sub = {false, false, false, true, true, false, true, false, false, true, true};
     	boolean[] and = {false, false, false, false, true, false, true, false, false, false, true};
     	boolean[] orr = {false, false, false, false, true, false, true, false, true, false, true};
     	
     	boolean[] ldr = {false, true, false, false, false, false, true, true, true, true, true};
     	boolean[] str = {false, false, false, false, false, false, true, true, true, true, true};
-    	
-    	// Retrieve opCode
+    	boolean[] hlt= {true, true, false, true, false, true, false, false, false, true, false}; 
     	boolean[] opCode = new boolean[11];
     	for (int i = instruction.length - 11; i < instruction.length; i++) {
     		opCode[i - 21] = instruction[i];
     	}
     	
-    	// Set control lines according to opCodes
-    	if (Arrays.equals(opCode, add) || Arrays.equals(opCode, sub) || 
+     	if (Arrays.equals(opCode, add) || Arrays.equals(opCode, sub) || 
     			Arrays.equals(opCode, and) || Arrays.equals(opCode, orr)) {
     		control.Reg2Loc = false;
     		control.ALUSrc = false;
@@ -306,11 +323,78 @@ public class CPU {
     		control.Uncondbranch = false;
     		control.Branch = false;
     	}
+     	boolean[] opCodeCBZ = new boolean[8];
+     	boolean CBZ []= {true, false, true, true, false, true, false, false};
+     	for (int i = instruction.length - 8; i < instruction.length; i++) {
+    		opCodeCBZ[i - 24] = instruction[i];
+    	}
+     	if(Arrays.equals(opCodeCBZ,CBZ )) {
+     		control.Reg2Loc = true;
+    		control.ALUSrc = false;
+    		control.RegWrite = false;
+    		control.MemWrite = false;
+    		control.MemRead = false;
+    		control.ALUControl = 2;
+    		control.MemtoReg = false;
+    		control.Uncondbranch = false; //look back to see if correct
+    		control.Branch = true;
+     	}
+     	boolean[] opCodeB = new boolean[6];
+     	boolean B[]= {false, false, false, true, false, true};
+     	for(int i=instruction.length-6;i<instruction.length; i++) {
+     		opCodeB[i-26]=instruction[i];
+     	}
+     	
+     	/*
+     	 * Set Read and Write register addresses
+     	 */
+     	
+     	// Source and destination registers
+     	boolean[] reg1 = new boolean[5];
+     	boolean[] dest=new boolean[5];
+     	boolean[] mux0=new boolean[5];
+     	boolean[] mux1=new boolean[5];
+     	
+ 		// Initialize source register 1 as bits 9-5
+ 		for(int i=5;i<10;i++) {
+ 			reg1[i-5]=instruction[i];
+ 			System.out.print(String.valueOf(reg1[i-5]));
+ 		}
+ 		
+ 		// Initialize destination register as bits 0-4
+ 		for(int i=0;i<5;i++) {
+ 			dest[i]=instruction[i];
+ 			System.out.print(String.valueOf(reg1[i]));
+ 		}
+ 		
+ 		// Initialize mux input 0 as bits 20-16
+ 		for(int i=16;i<21;i++) {
+ 			mux0[i-16]=instruction[i];
+ 			System.out.print(String.valueOf(mux0[i-16]));
+ 		}
+ 		
+ 		// Initialize mux input 1 as bits 0-4
+ 		for(int i=0;i<5;i++) {
+ 			mux1[i]=instruction[i];
+ 			System.out.print(String.valueOf(mux1[i]));
+ 		}
+ 		
+ 		// Set Read Register 2 (multiplexor output) conditional upon operation code
+ 		// Multiplexor Output is 0 if operation is AND, ORR, SUB, ADD --> 1 otherwise
+     	if (Arrays.equals(opCode, add)||Arrays.equals(opCode, sub)||Arrays.equals(opCode, and)||Arrays.equals(opCode, orr)) {
+     		register.setRead2Reg(muxRegRead2.output(0));
+     	} else if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
+     		register.setRead2Reg(muxRegRead2.output(1));
+     	} else if (Arrays.equals(opCodeCBZ, CBZ)) {
+     		register.setRead2Reg(muxRegRead2.output(1));
+     	} else if(Arrays.equals(opCode,hlt)) {
+    		System.out.println("op code was hlt");
+    		return false;
+    	} else {
+    		throw new IllegalArgumentException("ERROR: Unknown opcode  was presented to the CPU.");
+    	}
     	
-    	
-        // placeholder return so that starter code will build.
-        // student must replace with value based on opcode.
-        return false;
+        return true;
     }
 
 
@@ -329,7 +413,36 @@ public class CPU {
     *
     */
     private void execute() {
-
+    	
+    	adderBranch.activate();
+    	//If addition, subtraction, and, or or occures
+    	if(control.Reg2Loc== false & control.ALUSrc== false & control.RegWrite== true & 
+    			control.MemWrite== false & control.MemRead== false & control.ALUControl== 2 & 
+    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
+    		alu.activate();
+    		alu.setInputA(registers.getReadReg1());
+    		alu.setInputB(registers.getReadReg2());
+    		System.out.println(registers.getReadReg1());
+    			
+    	}
+    	//If LDR
+    	if(control.Reg2Loc== false & control.ALUSrc== true & control.RegWrite== true & 
+    			control.MemWrite== false & control.MemRead== true & control.ALUControl== 2 & 
+    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
+    		alu.activate();
+    		alu.setInputA(registers.getReadReg1());
+    		alu.setInputB(registers.getReadReg2());
+    	}
+    	//If STR
+    	if(control.Reg2Loc== true & control.ALUSrc== true & control.RegWrite== false & 
+    			control.MemWrite== true & control.MemRead== false & control.ALUControl== 2 & 
+    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
+    		alu.activate();
+    		alu.setInputA(registers.getReadReg1());
+    	//	alu.setInputB(muxRegRead2.getInput1());
+    	}
+    	
+    	
     }
 
     /**
