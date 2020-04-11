@@ -310,6 +310,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		
     	} else if (Arrays.equals(opCode, str)) {
     		control.Reg2Loc = true;
     		control.ALUSrc = true;
@@ -320,6 +321,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		
     	}
      	boolean[] opCodeCBZ = new boolean[8];
      	boolean CBZ []= {true, false, true, true, false, true, false, false};
@@ -354,7 +356,7 @@ public class CPU {
 //    		control.Branch = true;
 //     	}
      	boolean[] reg1 = new boolean[5];
-     	boolean[] reg2=new boolean[5];
+     	boolean[] reg2= new boolean[5];
      	if(Arrays.equals(opCode, add)||Arrays.equals(opCode, sub)||Arrays.equals(opCode, and)||Arrays.equals(opCode, orr)) {
      		for(int i=5;i<10;i++) {
      			reg1[i-5]=instruction[i];
@@ -362,27 +364,52 @@ public class CPU {
      		for(int i=16;i<21;i++) {
      			reg2[i-16]=instruction[i];
      		}
-     		registers.setRead1Reg(reg1);
-     		registers.setRead2reg(reg2);
+     		registers.setRead1Reg(reg1);  //setting register
+     		registers.setRead2Reg(reg2);  //setting register
+     		muxRegRead2.setInput0(reg2);  //setting MuxRegRead2
      	}
+     	//Checking contents of reg1
+     	for(int i=0;i<reg1.length;i++) {
+     		System.out.println(reg1[i]);
+     	}
+     	
+ 		
+ 		//if its STR
      	if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
      		for(int i=5;i<10;i++) {
      			reg1[i-5]=instruction[i];
      		}
-     		registers.setRead1Reg(reg1);
+     		registers.setRead1Reg(reg1);  		
      	}
+     	//setting multiplrxer Read Reg 2
+     	boolean mult[]= new boolean[5];
+     	if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
+     		for(int i=0;i<5;i++) {
+     			mult[i]=instruction[i];
+     		}
+     		muxRegRead2.setInput1(mult);
+     	}
+     	
+     	//System.out.println("REG1:  "+ registers.getReadReg1);
+     	boolean writeReg[]=new boolean[5];
      	if (Arrays.equals(opCodeCBZ, CBZ)) {
      		for(int i=5;i<10;i++) {
      			reg2[i-5]=instruction[i];
+     			writeReg[i-5]=instruction[i];
      		}
      		registers.setRead2Reg(reg2);
+     		registers.setWriteRegData(writeReg); //setting write register
      	}
+     	
+     	
     	if(Arrays.equals(opCode,hlt)) {
     		return true;
     	}
     	
+    	
         return false;
     }
+    
 
 
     /**
@@ -400,18 +427,36 @@ public class CPU {
     *
     */
     private void execute() {
-    	alu.activate();
+    	
+    	adderBranch.activate();
     	//If addition, subtraction, and, or or occures
     	if(control.Reg2Loc== false & control.ALUSrc== false & control.RegWrite== true & 
     			control.MemWrite== false & control.MemRead== false & control.ALUControl== 2 & 
     			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
-    		alu.setInputA(register.getReadReg1());
-    		alu.setInputB(register.getReadReg2());
-    		
-    		Binary.binToSDec(alu.getReadReg1());
+    		alu.activate();
+    		alu.setInputA(registers.getReadReg1());
+    		alu.setInputB(registers.getReadReg2());
+    		System.out.println(registers.getReadReg1());
     			
-    		
     	}
+    	//If LDR
+    	if(control.Reg2Loc== false & control.ALUSrc== true & control.RegWrite== true & 
+    			control.MemWrite== false & control.MemRead== true & control.ALUControl== 2 & 
+    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
+    		alu.activate();
+    		alu.setInputA(registers.getReadReg1());
+    		alu.setInputB(registers.getReadReg2());
+    	}
+    	//If STR
+    	if(control.Reg2Loc== true & control.ALUSrc== true & control.RegWrite== false & 
+    			control.MemWrite== true & control.MemRead== false & control.ALUControl== 2 & 
+    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
+    		alu.activate();
+    		alu.setInputA(registers.getReadReg1());
+    	//	alu.setInputB(muxRegRead2.getInput1());
+    	}
+    	
+    	
     }
 
     /**
