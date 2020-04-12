@@ -380,7 +380,7 @@ public class CPU {
  		}
  		
  		registers.setRead1Reg(reg1);
- 		registers.setRead2Reg(reg2);
+ 		registers.setWriteRegNum(dest);
  		muxRegRead2.setInput0(mux0);
  		muxRegRead2.setInput1(mux1);
  		
