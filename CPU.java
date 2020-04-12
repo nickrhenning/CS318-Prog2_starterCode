@@ -251,10 +251,15 @@ public class CPU {
     */
     private boolean[] fetch() {
 
-        // placeholder return so that starter code will build.
-        // student must replace with the instruction that is fetched.
+        // Activate the adderPC, set inputA to current pc, and add 4 to the pc
     	adderPC.activate();
+    	adderPC.setInputA(pc);
+    	boolean four[] = {false, false, true, false, false};
+    	adderPC.setInputB(four);
+    	
+    	// Set the adderPC's output into input 0
     	muxPC.setInput0(adderPC.getOutput());
+    	
         return instructionMemory.read32(pc);
     }
 
@@ -348,7 +353,7 @@ public class CPU {
      	/*
      	 * Set Read and Write register addresses
      	 */
-     	
+
      	// Source and destination registers
      	boolean[] reg1 = new boolean[5];
      	boolean[] dest=new boolean[5];
@@ -387,18 +392,47 @@ public class CPU {
  		// Set Read Register 2 (multiplexor output) conditional upon operation code
  		// Multiplexor Output is 0 if operation is AND, ORR, SUB, ADD --> 1 otherwise
      	if (Arrays.equals(opCode, add)||Arrays.equals(opCode, sub)||Arrays.equals(opCode, and)||Arrays.equals(opCode, orr)) {
-     		register.setRead2Reg(muxRegRead2.output(false));
+     		registers.setRead2Reg(muxRegRead2.output(false));
      	} else if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
-     		register.setRead2Reg(muxRegRead2.output(true));
+     		registers.setRead2Reg(muxRegRead2.output(true));
      	} else if (Arrays.equals(opCodeCBZ, CBZ)) {
-     		register.setRead2Reg(muxRegRead2.output(true));
+     		registers.setRead2Reg(muxRegRead2.output(true));
      	} else if(Arrays.equals(opCode,hlt)) {
     		System.out.println("op code was hlt");
     		return false;
     	} else {
     		throw new IllegalArgumentException("ERROR: Unknown opcode  was presented to the CPU.");
     	}
-    	
+     	
+     	
+     	/*
+     	 * Set Read data addresses, and immediate values
+     	 */
+     	
+     	boolean[] readData1 = registers.getReadReg1();
+     	boolean[] readData2 = registers.getReadReg2();
+     	
+     	// Initialize immediate bits from instruction according to opCode 
+     	boolean[] immediate;
+     	// Bits 20-12 in case of LDR or STR; Bits 23-5 in case of CBZ
+     	if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
+     		immediate = new boolean[9];
+     		for(int i=12;i<21;i++) {
+     			immediate[i-12]=instruction[i];
+     		}
+     	} else if (Arrays.equals(opCodeCBZ, CBZ)) {
+     		immediate = new boolean[19];
+     		for(int i=5;i<24;i++) {
+     			immediate[i-5]=instruction[i];
+     		}
+     	}
+
+
+     	// Set multiplexor inputs, and then output based on ALUSrc
+     	muxALUb.setInput0(readData2);
+     	muxALUb.setInput1(immediate);
+     	
+     	
         return true;
     }
 
@@ -419,35 +453,44 @@ public class CPU {
     */
     private void execute() {
     	
+    	/*
+    	 * Code block for handling the adder Branch ALU, program counter, and muxPC
+    	 */
     	adderBranch.activate();
-    	//If addition, subtraction, and, or or occures
-    	if(control.Reg2Loc== false & control.ALUSrc== false & control.RegWrite== true & 
-    			control.MemWrite== false & control.MemRead== false & control.ALUControl== 2 & 
-    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
-    		alu.activate();
-    		alu.setInputA(registers.getReadReg1());
-    		alu.setInputB(registers.getReadReg2());
-    		System.out.println(registers.getReadReg1());
-    			
-    	}
-    	//If LDR
-    	if(control.Reg2Loc== false & control.ALUSrc== true & control.RegWrite== true & 
-    			control.MemWrite== false & control.MemRead== true & control.ALUControl== 2 & 
-    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
-    		alu.activate();
-    		alu.setInputA(registers.getReadReg1());
-    		alu.setInputB(registers.getReadReg2());
-    	}
-    	//If STR
-    	if(control.Reg2Loc== true & control.ALUSrc== true & control.RegWrite== false & 
-    			control.MemWrite== true & control.MemRead== false & control.ALUControl== 2 & 
-    			control.MemtoReg== false & control.Uncondbranch== false & control.Branch== false) {
-    		alu.activate();
-    		alu.setInputA(registers.getReadReg1());
-    	//	alu.setInputB(muxRegRead2.getInput1());
-    	}
     	
+    	// TO DO --> Initialize immediate value ... 
     	
+    	// Read the pc and immediate value into the adderBranch  ALU
+    	adderBranch.setInputA(pc);
+    	adderBranch.setInputB(immediate);
+    	
+    	// Set the branch adder result into muxPC input 1
+    	muxPC.setInput1(adderBranch.getOutput());
+    	   	
+    	
+     	/*
+     	 * Code block for handling the muxALUb ALU
+     	 * 
+     	 * Set ALU inputA based on the value in Read Register 1
+     	 * 
+     	 * Set ALU inputB based on muxALUb output, which is contingent on ALUSrc 
+     	 * 
+     	 * If ALUSrc is false, then operation is ADD, ORR, SUB, AND and mux should be false
+     	 * Else if ALUSrc is true, then operation is CBZ, LDR, or STR and mux should be true
+     	 */
+    	alu.activate();
+    	
+    	alu.setInputA(registers.getReadReg1()); 
+    	
+     	if (control.ALUSrc == false) {
+     		alu.setInputB(muxALUb.output(false));
+     	} else if (control.ALUSrc == true) {
+     		alu.setInputB(muxALUb.output(true));
+     	} 
+     	
+     	// Set ALU result into input0 of muxRegWriteData
+     	muxRegWriteData.setInput0(alu.output());
+     	
     }
 
     /**
@@ -460,7 +503,10 @@ public class CPU {
     * This method has no information about the opcode!
     */
     private void memoryAccess() {
-
+    	// TO DO: deal with "Address" and "Write data"
+    	
+    	// Read data from memory into muxReadWriteData input
+    	// muxRegWriteData.setInput1(dataMemory.read)
     }
 
     /**
