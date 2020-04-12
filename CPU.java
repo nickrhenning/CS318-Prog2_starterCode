@@ -379,14 +379,19 @@ public class CPU {
  			System.out.print(String.valueOf(mux1[i]));
  		}
  		
+ 		registers.setRead1Reg(reg1);
+ 		registers.setRead2Reg(reg2);
+ 		muxRegRead2.setInput0(mux0);
+ 		muxRegRead2.setInput1(mux1);
+ 		
  		// Set Read Register 2 (multiplexor output) conditional upon operation code
  		// Multiplexor Output is 0 if operation is AND, ORR, SUB, ADD --> 1 otherwise
      	if (Arrays.equals(opCode, add)||Arrays.equals(opCode, sub)||Arrays.equals(opCode, and)||Arrays.equals(opCode, orr)) {
-     		register.setRead2Reg(muxRegRead2.output(0));
+     		register.setRead2Reg(muxRegRead2.output(false));
      	} else if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
-     		register.setRead2Reg(muxRegRead2.output(1));
+     		register.setRead2Reg(muxRegRead2.output(true));
      	} else if (Arrays.equals(opCodeCBZ, CBZ)) {
-     		register.setRead2Reg(muxRegRead2.output(1));
+     		register.setRead2Reg(muxRegRead2.output(true));
      	} else if(Arrays.equals(opCode,hlt)) {
     		System.out.println("op code was hlt");
     		return false;
