@@ -545,11 +545,11 @@ public class CPU {
     	/*
     	 * writing back to write data
     	 */
-    	
+    	registers.activateWrite();
     	if(control.MemtoReg==false) {
-    		instructionMemory.write32(muxRegWriteData.output(false));
+    		registers.setWriteRegData(muxRegWriteData.output(false));
     	}else if (control.MemtoReg==true) {
-    		instructionMemory.write32(muxRegWriteData.output(true));
+    		registers.setWriteRegData(muxRegWriteData.output(true));
     	}
     	/*
     	 * write back to pc inside the if statement is (if CBZ and branch are true) OR (uncondbranch is true)
