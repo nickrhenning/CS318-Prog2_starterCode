@@ -142,7 +142,7 @@ public class CPU {
     public void runTestProg3() {
 
         int cycleCount = 0;
-
+        
         // Start the first cycle.
         boolean[] instruction = fetch();
 
@@ -157,6 +157,7 @@ public class CPU {
 
 
         boolean op = decode(instruction);
+        System.out.println("BEFORE DECODE");
         System.out.println("CYCLE COUNT:   "+cycleCount);
         // Example Test: Verify that when cycleCount is 0 the control signals
         // are correctly set for an ADD instruction
@@ -251,13 +252,16 @@ public class CPU {
     */
     private boolean[] fetch() {
 
-        // Activate the adderPC, set inputA to current pc, and add 4 to the pc
-    	adderPC.activate();
+        // Set inputA to current pc and inputB to 4
     	adderPC.setInputA(pc);
     	boolean four[] = {false, false, true, false, false};
-    	adderPC.setInputB(four);
+    	adderPC.setInputB(to32(four));
     	
-    	// Set the adderPC's output into input 0
+    	// Activate the adderPC to perform the operation and 
+    	// place the result into input0 of muxPC
+    	//adderPC.setControl(2);
+    	
+    	adderPC.activate();
     	muxPC.setInput0(adderPC.getOutput());
     	
         return instructionMemory.read32(pc);
@@ -278,7 +282,7 @@ public class CPU {
     * @return false if the opcode is HLT; true for any other opcode
     */
     private boolean decode(boolean[] instruction) {
-    	System.out.println("Begin decode: program counter is: " + Long.toString(Binary.binToUDec(pc)));
+    	// System.out.println("Begin decode: program counter is: " + Long.toString(Binary.binToUDec(pc)));
     	
     	/*
     	 * Initialize opcodes and set control values 
@@ -290,20 +294,52 @@ public class CPU {
     	
     	boolean[] ldr = {false, true, false, false, false, false, true, true, true, true, true};
     	boolean[] str = {false, false, false, false, false, false, true, true, true, true, true};
-    	boolean[] hlt= {true, true, false, true, false, true, false, false, false, true, false}; 
+    	
+    	// boolean[] hlt= {true, true, false, true, false, true, false, false, false, true, false}; 
+    	boolean[] hlt = {false, true, false, false, false, true, false, true, false, true, true};
+    	
     	boolean[] opCode = new boolean[11];
     	for (int i = instruction.length - 11; i < instruction.length; i++) {
     		opCode[i - 21] = instruction[i];
     	}
     	
-     	if (Arrays.equals(opCode, add) || Arrays.equals(opCode, sub) || 
-    			Arrays.equals(opCode, and) || Arrays.equals(opCode, orr)) {
+     	if (Arrays.equals(opCode, add)) {
     		control.Reg2Loc = false;
     		control.ALUSrc = false;
     		control.RegWrite = true;
     		control.MemWrite = false;
     		control.MemRead = false;
     		control.ALUControl = 2;
+    		control.MemtoReg = false;
+    		control.Uncondbranch = false;
+    		control.Branch = false;
+    	} else if (Arrays.equals(opCode, sub)) {
+    		control.Reg2Loc = false;
+    		control.ALUSrc = false;
+    		control.RegWrite = true;
+    		control.MemWrite = false;
+    		control.MemRead = false;
+    		control.ALUControl = 6;
+    		control.MemtoReg = false;
+    		control.Uncondbranch = false;
+    		control.Branch = false;
+    	} else if (Arrays.equals(opCode, and)) {
+    		control.Reg2Loc = false;
+    		control.ALUSrc = false;
+    		control.RegWrite = true;
+    		control.MemWrite = false;
+    		control.MemRead = false;
+    		control.ALUControl = 0;
+    		control.MemtoReg = false;
+    		control.Uncondbranch = false;
+    		control.Branch = false;
+    	} else if (Arrays.equals(opCode, orr)) {
+    		control.Reg2Loc = false;
+    		control.ALUSrc = false;
+    		control.RegWrite = true;
+    		control.MemWrite = false;
+    		control.MemRead = false;
+    		control.ALUControl = 1;
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
@@ -328,12 +364,20 @@ public class CPU {
     		control.Uncondbranch = false;
     		control.Branch = false;
     	}
+     
+     	boolean[] CBZ = {true, false, true, true, false, true, false, true};
+    	boolean[] B = {true, false, true, false, false, false};
+     	
      	boolean[] opCodeCBZ = new boolean[8];
-     	boolean CBZ []= {true, false, true, true, false, true, false, false};
      	for (int i = instruction.length - 8; i < instruction.length; i++) {
     		opCodeCBZ[i - 24] = instruction[i];
     	}
-     	if(Arrays.equals(opCodeCBZ,CBZ )) {
+     	boolean[] opCodeB = new boolean[6];
+     	for (int i = instruction.length - 6; i < instruction.length; i++) {
+    		opCodeCBZ[i - 26] = instruction[i];
+    	}
+     	
+     	if(Arrays.equals(opCodeCBZ,CBZ)) {
      		control.Reg2Loc = true;
     		control.ALUSrc = false;
     		control.RegWrite = false;
@@ -343,12 +387,20 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false; //look back to see if correct
     		control.Branch = true;
+    		System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
+     	} else if (Arrays.equals(opCodeB, B)) {
+     		control.Reg2Loc = false;
+    		control.ALUSrc = false;
+    		control.RegWrite = false;
+    		control.MemWrite = false;
+    		control.MemRead = false;
+    		control.ALUControl = 2;
+    		control.MemtoReg = false;
+    		control.Uncondbranch = false;
+    		control.Branch = true;
+    		System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
      	}
-     	boolean[] opCodeB = new boolean[6];
-     	boolean B[]= {false, false, false, true, false, true};
-     	for(int i=instruction.length-6;i<instruction.length; i++) {
-     		opCodeB[i-26]=instruction[i];
-     	}
+     	
      	
      	/*
      	 * Set Read and Write register addresses
@@ -363,25 +415,21 @@ public class CPU {
  		// Initialize source register 1 as bits 9-5
  		for(int i=5;i<10;i++) {
  			reg1[i-5]=instruction[i];
- 			System.out.print(String.valueOf(reg1[i-5]));
  		}
  		
  		// Initialize destination register as bits 0-4
  		for(int i=0;i<5;i++) {
  			dest[i]=instruction[i];
- 			System.out.print(String.valueOf(reg1[i]));
  		}
  		
  		// Initialize mux input 0 as bits 20-16
  		for(int i=16;i<21;i++) {
  			mux0[i-16]=instruction[i];
- 			System.out.print(String.valueOf(mux0[i-16]));
  		}
  		
  		// Initialize mux input 1 as bits 0-4
  		for(int i=0;i<5;i++) {
  			mux1[i]=instruction[i];
- 			System.out.print(String.valueOf(mux1[i]));
  		}
  		
  		registers.setRead1Reg(reg1);
@@ -401,7 +449,12 @@ public class CPU {
     		System.out.println("op code was hlt");
     		return false;
     	} else {
-    		throw new IllegalArgumentException("ERROR: Unknown opcode  was presented to the CPU.");
+    		System.out.println("ERROR: CPu has run into unidentified opcode: ");
+    		for (int k = 0; k < instruction.length; k++) {
+    			System.out.print(instruction[k]);
+    		}
+    		throw new IllegalArgumentException("ERROR: The CPU is force quiting now");
+    		// System.out.println("Unknown argument was presented to the CPU.");
     	}
      	
      	
@@ -413,7 +466,7 @@ public class CPU {
      	boolean[] readData2 = registers.getReadReg2();
      	
      	// Initialize immediate bits from instruction according to opCode 
-     	boolean[] immediate;
+     	boolean[] immediate = {false, false};
      	// Bits 20-12 in case of LDR or STR; Bits 23-5 in case of CBZ
      	if(Arrays.equals(opCode,ldr)||Arrays.equals(opCode,str)) {
      		immediate = new boolean[9];
@@ -425,12 +478,14 @@ public class CPU {
      		for(int i=5;i<24;i++) {
      			immediate[i-5]=instruction[i];
      		}
-     	}
+     	} 
+     	
+     	// Place immediate value into inputB of adderBranch 
+     	adderBranch.setInputB(to32(immediate));
 
-
-     	// Set multiplexor inputs, and then output based on ALUSrc
+     	// Set muxALUB inputs, and then output based on ALUSrc
      	muxALUb.setInput0(readData2);
-     	muxALUb.setInput1(immediate);
+     	muxALUb.setInput1(to32(immediate));
      	
      	
         return true;
@@ -456,17 +511,18 @@ public class CPU {
     	/*
     	 * Code block for handling the adder Branch ALU, program counter, and muxPC
     	 */
-    	adderBranch.activate();
     	
-    	// TO DO --> Initialize immediate value ... 
-    	
-    	// Read the pc and immediate value into the adderBranch  ALU
+    	// Read the pc value into the adderBranch  ALU and activate to perform the operation
     	adderBranch.setInputA(pc);
-    	adderBranch.setInputB(immediate);
+    	adderBranch.setControl(2);
+    	adderBranch.activate();
     	
     	// Set the branch adder result into muxPC input 1
     	muxPC.setInput1(adderBranch.getOutput());
+    	// Set adderPC output into input 0
+    	muxPC.setInput0(adderPC.getOutput()); 
     	   	
+    	
     	
      	/*
      	 * Code block for handling the muxALUb ALU
@@ -478,7 +534,6 @@ public class CPU {
      	 * If ALUSrc is false, then operation is ADD, ORR, SUB, AND and mux should be false
      	 * Else if ALUSrc is true, then operation is CBZ, LDR, or STR and mux should be true
      	 */
-    	alu.activate();
     	
     	alu.setInputA(registers.getReadReg1()); 
     	
@@ -488,8 +543,11 @@ public class CPU {
      		alu.setInputB(muxALUb.output(true));
      	} 
      	
+     	alu.setControl(control.ALUControl);
+     	alu.activate();  // Perform operation once inputs are in 
+     	
      	// Set ALU result into input0 of muxRegWriteData
-     	muxRegWriteData.setInput0(alu.output());
+     	muxRegWriteData.setInput0(alu.getOutput());
      	
     }
 
@@ -507,8 +565,27 @@ public class CPU {
     	
     	// Read data from memory into muxReadWriteData input
     	// muxRegWriteData.setInput1(dataMemory.read)
+    	
+       /*  
+        * writing the data into data memory then setting the muxRegWriteData to 1
+    	* to that data written in
+    	*  
+    	*  if MemtoReg is true then the muxRegWrite multiplexer is true
+        */
+    	
+    	//made the setInput1 to muxALUb.output(false) because inside that is the readData2
+    	muxRegWriteData.setInput1(muxALUb.output(false));
+    	
+    	if(control.MemtoReg==false) {
+    		muxRegWriteData.output(false);
+    	}else if (control.MemtoReg=true) {
+    		muxRegWriteData.output(true);
+    	}
+    	
+    	
+    	
     }
-
+    
     /**
     * STUDENT MUST COMPLETE THIS METHOD
     *
@@ -519,6 +596,55 @@ public class CPU {
     * This method has no information about the opcode!
     */
     private void writeBack() {
-
+    	
+    	/*
+    	 * writing back to write data
+    	 */
+    	
+    	if(control.MemtoReg==false) {
+    		registers.setWriteRegData(muxRegWriteData.output(false));
+    	}else if (control.MemtoReg==true) {
+    		registers.setWriteRegData(muxRegWriteData.output(true));
+    	}
+    	
+    	registers.activateWrite();
+    	
+    	/*
+    	 * write back to pc inside the if statement is (if CBZ and branch are true) OR (uncondbranch is true)
+    	 * then set muxPC output to true 
+    	 * 
+    	 * Note for Nick: since CBZ control.branch is true do we need the second control.branch before the or statement?
+    	 */
+    	
+    	if(((control.Reg2Loc== true & control.ALUSrc== false & control.RegWrite== false & 
+    	   control.MemWrite== false & control.MemRead== false & control.ALUControl== 2 &
+		   control.MemtoReg== false & control.Uncondbranch== false //look back to see if correct
+		   & control.Branch== true) & control.Branch==true) || control.Uncondbranch==true) {
+    		pc=muxPC.output(true);
+    	}else {
+    		pc=muxPC.output(false);
+    	}
+    	
     }
+    
+    
+    /**
+     * Method to turn an n-bit word into a 32 bit word
+     * @param arg a boolean array representing a number 
+     * @return 32 bit representation
+     */
+    public boolean[] to32(boolean[] arg) {
+    	boolean[] result = new boolean[32];
+    	for (int i = 0; i < result.length; i++) {
+    		if (i < arg.length) {
+    			result[i] = arg[i];
+    		} else {
+    			result[i] = false;
+    		}
+    	}
+    	
+    	
+    	return result;
+    }
+    
 }
