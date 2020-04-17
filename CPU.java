@@ -194,7 +194,8 @@ public class CPU {
 
         // Loop until a halt instruction is decoded
         while(op) {
-            execute();
+            boolean cycleFail = false;
+        	execute();
 
             // Example Test: Verify that when cycleCount is 0 the ALU result is zero
             boolean[] correctALU = Binary.uDecToBin(0L, 32);
@@ -202,16 +203,30 @@ public class CPU {
                 System.out.println("FAIL: cycle " + cycleCount + " incorrect ALU result:");
                 System.out.println("------ ALU result: " + Binary.toString(alu.getOutput()));
                 System.out.println("------ correct result: " + Binary.toString(correctALU));
+                cycleFail = true;
             }
 
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 1, the ALU result is the correct
             // data memory address (should be 16)
             //NOT CORRECT THE OUTPUT WAS 8 NOT 16
-            if(cycleCount==1 & muxRegWriteData.output(false)==alu.getOutput() ) {
+            
+            boolean[] sixteen = {false, false, false, false, true, false, false, false, false};
+            
+            if(cycleCount==1) {
+            	System.out.println("------ data memory address returned "+Binary.toString(alu.getOutput()));
+            }
+            
+            for (boolean bool: to32(sixteen)) {
+            	System.out.println(String.valueOf(bool));
+            }
+            
+            if(cycleCount==1 && (to32(sixteen) != alu.getOutput())) {
             	System.out.println("FAIL ALU result at cycleCount "+ cycleCount+ " did not fetch the correct answer");
             	System.out.println("------ data memory address returned "+Binary.toString(alu.getOutput()));
+            	cycleFail = true;
             	System.out.println("------ correct return: " + Binary.toString(muxRegWriteData.output(false)));
+
             }else {
             	//System.out.println("muxRegWriteData: "+Binary.toString(muxRegWriteData.output(false)));
             	//System.out.println("ALU Output: "+Binary.toString(alu.getOutput()));
@@ -227,6 +242,7 @@ public class CPU {
             	System.out.println("FAIL branch adder's output at cycle "+ cycleCount+ " did not fetch the correct output");
             	System.out.println("------ adder branch returned "+Binary.toString(muxPC.output(true)));
             	System.out.println("------ correct data: " + Binary.toString(adderBranch.getOutput()));
+            	cycleFail = true;
             }
 
             memoryAccess();
@@ -241,6 +257,7 @@ public class CPU {
             	System.out.println("FAIL: muxRegWriteData at cycle " + cycleCount + " did not fetch the correct number");
             	System.out.println("------ muxRegWriteData returned: "+ Binary.toString(muxRegWriteData.output(true)));
             	System.out.println("------ correct data:             " + Binary.toString(registers.getReadReg2()));
+            	cycleFail = true;
             }
             writeBack();
 
@@ -259,6 +276,7 @@ public class CPU {
             	System.out.println("FAIL: cycle " + cycleCount + " did not fetch correct instruction:");
                 System.out.println("------ fetch returned: " + Binary.toString(instruction));
                 System.out.println("------ correct instruction: " + Binary.toString(lastInstruction));
+                cycleFail = true;
             }
 
 
@@ -268,12 +286,13 @@ public class CPU {
             // Test that when cycleCount is 1, the the control signals are correctly
             // set for a LDR instruction
             
-            if(cycleCount!= 1 && (control.Uncondbranch != false || control.RegWrite != true
+            if(cycleCount== 1 && (control.Uncondbranch != false || control.RegWrite != true
                     || control.Reg2Loc != false || control.MemWrite != false || control.MemtoReg != false
                     || control.MemRead != true || control.Branch != false || control.ALUSrc != true
                     || control.ALUControl != 2))
                 {
             	System.out.println("FAIL: LDR cycle " + cycleCount + " after decode, control lines incorrect");
+                cycleFail = true;
                 }
             System.out.println();
             System.out.println("CYCLE COUNT:   "+cycleCount);
@@ -288,6 +307,10 @@ public class CPU {
             System.out.println("muxRegWriteData FALSE:   "+ Binary.toString(muxRegWriteData.output(false)));
             System.out.println("PC:   "+pc[0]);
             System.out.println();
+            
+            if (cycleFail == false) {
+            	System.out.println("CYCLE PASS: "+cycleCount);
+            }
 
         }
         
