@@ -118,7 +118,7 @@ public class CPU {
             op = decode(instruction);
         }
 
-        System.out.println("CPU halt after " + cycleCount + " cycles.");
+       // System.out.println("CPU halt after " + cycleCount + " cycles.");
     }
 
     /**
@@ -157,8 +157,8 @@ public class CPU {
 
 
         boolean op = decode(instruction);
-        System.out.println("BEFORE DECODE");
-        System.out.println("CYCLE COUNT:   "+cycleCount);
+        //System.out.println("BEFORE DECODE");
+        //System.out.println("CYCLE COUNT:   "+cycleCount);
         // Example Test: Verify that when cycleCount is 0 the control signals
         // are correctly set for an ADD instruction
         if(cycleCount == 0 && (control.Uncondbranch != false || control.RegWrite != true
@@ -179,6 +179,18 @@ public class CPU {
            
         	System.out.println("FAIL: cycle " + cycleCount + " after decode, control lines incorrect");
         }
+        
+        System.out.println();
+        System.out.println("CYCLE COUNT:   "+cycleCount);
+        System.out.println("INSTRUCTIONS   "+ Binary.toString(instruction));
+        System.out.println("REGISTER 1:   "+ Binary.toString(registers.getReadReg1()));
+        System.out.println("REGISTER 2:   "+ Binary.toString(registers.getReadReg2()));
+        System.out.println("muxALUb TRUE:   "+ Binary.toString(muxALUb.output(true)));
+        System.out.println("muxALUb FALSE:   "+ Binary.toString(muxALUb.output(false)));
+        System.out.println("muxRegWriteData TRUE:   "+ Binary.toString(muxRegWriteData.output(true)));
+        System.out.println("muxRegWriteData FALSE:   "+ Binary.toString(muxRegWriteData.output(false)));
+        System.out.println("PC:   "+pc[0]);
+        System.out.println();
 
         // Loop until a halt instruction is decoded
         while(op) {
@@ -195,10 +207,14 @@ public class CPU {
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 1, the ALU result is the correct
             // data memory address (should be 16)
-            if(cycleCount==6 & muxRegWriteData.output(false)==alu.getOutput() ) {
+            //NOT CORRECT THE OUTPUT WAS 8 NOT 16
+            if(cycleCount==1 & muxRegWriteData.output(false)==alu.getOutput() ) {
             	System.out.println("FAIL ALU result at cycleCount "+ cycleCount+ " did not fetch the correct answer");
             	System.out.println("------ data memory address returned "+Binary.toString(alu.getOutput()));
             	System.out.println("------ correct return: " + Binary.toString(muxRegWriteData.output(false)));
+            }else {
+            	//System.out.println("muxRegWriteData: "+Binary.toString(muxRegWriteData.output(false)));
+            	//System.out.println("ALU Output: "+Binary.toString(alu.getOutput()));
             }
 
             
@@ -259,11 +275,26 @@ public class CPU {
                 {
             	System.out.println("FAIL: LDR cycle " + cycleCount + " after decode, control lines incorrect");
                 }
+            System.out.println();
+            System.out.println("CYCLE COUNT:   "+cycleCount);
+            System.out.println("INSTRUCTIONS   "+ Binary.toString(instruction));
+            System.out.println("REGISTER 1:   "+ Binary.toString(registers.getReadReg1()));
+            System.out.println("REGISTER 2:   "+ Binary.toString(registers.getReadReg2()));
+            System.out.println("muxRegRead2 TRUE:   "+ Binary.toString(muxRegRead2.output(true)));
+            System.out.println("muxRegRead2 FALSE:   "+ Binary.toString(muxRegRead2.output(false)));
+            System.out.println("muxALUb TRUE:   "+ Binary.toString(muxALUb.output(true)));
+            System.out.println("muxALUb FALSE:   "+ Binary.toString(muxALUb.output(false)));
+            System.out.println("muxRegWriteData TRUE:   "+ Binary.toString(muxRegWriteData.output(true)));
+            System.out.println("muxRegWriteData FALSE:   "+ Binary.toString(muxRegWriteData.output(false)));
+            System.out.println("PC:   "+pc[0]);
+            System.out.println();
 
         }
         
-        System.out.println("CPU halt after " + cycleCount + " cycles.");
-
+       // System.out.println("CPU halt after " + cycleCount + " cycles.");
+        
+        
+        
     }
 
 
@@ -339,6 +370,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		System.out.println("OpCode:   ADD");
     	} else if (Arrays.equals(opCode, sub)) {
     		control.Reg2Loc = false;
     		control.ALUSrc = false;
@@ -349,6 +381,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		System.out.println("OpCode:   SUB");
     	} else if (Arrays.equals(opCode, and)) {
     		control.Reg2Loc = false;
     		control.ALUSrc = false;
@@ -359,6 +392,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		System.out.println("OpCode:   AND");
     	} else if (Arrays.equals(opCode, orr)) {
     		control.Reg2Loc = false;
     		control.ALUSrc = false;
@@ -369,6 +403,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		System.out.println("OpCode:   ORR");
     	} else if (Arrays.equals(opCode, ldr)) {
     		control.Reg2Loc = false;
     		control.ALUSrc = true;
@@ -379,6 +414,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		System.out.println("OpCode:   LDR");
     	} else if (Arrays.equals(opCode, str)) {
     		control.Reg2Loc = true;
     		control.ALUSrc = true;
@@ -389,6 +425,7 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = false;
+    		System.out.println("OpCode:   STR");
     	}
      
      	boolean[] CBZ = {true, false, true, true, false, true, false, true};
@@ -413,7 +450,8 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false; //look back to see if correct
     		control.Branch = true;
-    		System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
+    		System.out.println("OpCode:   CBZ");
+    		//System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
      	} else if (Arrays.equals(opCodeB, B)) {
      		control.Reg2Loc = false;
     		control.ALUSrc = false;
@@ -424,14 +462,15 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = true;
-    		System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
+    		//System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
+    		System.out.println("OpCode:   B");
      	}
      	
      	
      	/*
      	 * Set Read and Write register addresses
      	 */
-
+     
      	// Source and destination registers
      	boolean[] reg1 = new boolean[5];
      	boolean[] dest=new boolean[5];
@@ -442,6 +481,8 @@ public class CPU {
  		for(int i=5;i<10;i++) {
  			reg1[i-5]=instruction[i];
  		}
+ 		System.out.println("REG1:   "+Binary.toString(reg1));
+ 		
  		
  		// Initialize destination register as bits 0-4
  		for(int i=0;i<5;i++) {
@@ -462,6 +503,8 @@ public class CPU {
  		registers.setWriteRegNum(dest);
  		muxRegRead2.setInput0(mux0);
  		muxRegRead2.setInput1(mux1);
+ 		System.out.println("REGISTER 1 DECODE:   "+Binary.toString(registers.getReadReg1()));
+ 		
  		
  		// Set Read Register 2 (multiplexor output) conditional upon operation code
  		// Multiplexor Output is 0 if operation is AND, ORR, SUB, ADD --> 1 otherwise
@@ -472,12 +515,12 @@ public class CPU {
      	} else if (Arrays.equals(opCodeCBZ, CBZ)) {
      		registers.setRead2Reg(muxRegRead2.output(true));
      	} else if(Arrays.equals(opCode,hlt)) {
-    		System.out.println("op code was hlt");
+    		//System.out.println("op code was hlt");
     		return false;
     	} else {
-    		System.out.println("ERROR: CPu has run into unidentified opcode: ");
+    		//System.out.println("ERROR: CPu has run into unidentified opcode: ");
     		for (int k = 0; k < instruction.length; k++) {
-    			System.out.print(instruction[k]);
+    		//	System.out.print(instruction[k]);
     		}
     		throw new IllegalArgumentException("ERROR: The CPU is force quiting now");
     		// System.out.println("Unknown argument was presented to the CPU.");
