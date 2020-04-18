@@ -2,7 +2,8 @@
 * Represents a simple CPU based on the ARMv8 datapath.
 *
 * CS318 Programming Assignment 4
-* Name:
+* @author Caleb Dimenstein
+* @author Nick Henning
 *
 */
 import java.io.*;
@@ -118,7 +119,6 @@ public class CPU {
             op = decode(instruction);
         }
 
-        System.out.println("CPU halt after " + cycleCount + " cycles.");
     }
 
     /**
@@ -155,10 +155,8 @@ public class CPU {
             System.out.println("------ correct instruction: " + Binary.toString(firstInstr));
         }
 
-
         boolean op = decode(instruction);
-        System.out.println("BEFORE DECODE");
-        System.out.println("CYCLE COUNT:   "+cycleCount);
+
         // Example Test: Verify that when cycleCount is 0 the control signals
         // are correctly set for an ADD instruction
         if(cycleCount == 0 && (control.Uncondbranch != false || control.RegWrite != true
@@ -166,23 +164,13 @@ public class CPU {
             || control.MemRead != false || control.Branch != false || control.ALUSrc != false
             || control.ALUControl != 2))
         {
-        	System.out.println("cycleCount:   "+cycleCount);
-        	System.out.println("control UncondBranch:   "+control.Uncondbranch);
-        	System.out.println("RegWrite:   "+control.RegWrite);
-        	System.out.println("Reg2Loc:   "+control.Reg2Loc);
-        	System.out.println("MemWrite:   "+control.MemWrite);
-        	System.out.println("MemtoReg:   "+control.MemtoReg);
-        	System.out.println("MemRead:   "+control.MemRead);
-        	System.out.println("Branch:   "+control.Branch);
-        	System.out.println("ALUSrc:   "+control.ALUSrc);
-        	System.out.println("ALUControl:   "+control.ALUControl);
-           
         	System.out.println("FAIL: cycle " + cycleCount + " after decode, control lines incorrect");
         }
 
         // Loop until a halt instruction is decoded
         while(op) {
-            execute();
+            boolean cycleFail = false;
+        	execute();
 
             // Example Test: Verify that when cycleCount is 0 the ALU result is zero
             boolean[] correctALU = Binary.uDecToBin(0L, 32);
@@ -190,16 +178,35 @@ public class CPU {
                 System.out.println("FAIL: cycle " + cycleCount + " incorrect ALU result:");
                 System.out.println("------ ALU result: " + Binary.toString(alu.getOutput()));
                 System.out.println("------ correct result: " + Binary.toString(correctALU));
+                cycleFail = true;
             }
 
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 1, the ALU result is the correct
             // data memory address (should be 16)
+            //NOT CORRECT THE OUTPUT WAS 8 NOT 16
+            
+            boolean[] sixteen = {false, false, false, false, true, false};
+            if(cycleCount==1 && (!Arrays.equals(to32(sixteen), alu.getOutput()))) {
+            	System.out.println("FAIL ALU result at cycleCount "+ cycleCount+ " did not fetch the correct answer");
+            	System.out.println("------ data memory address returned "+Binary.toString(alu.getOutput()));
+            	System.out.println("------ correct return: " + Binary.toString(muxRegWriteData.output(false)));
+            	cycleFail = true;
+            }
 
+            
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 6, the branch adder's (adderBranch)
             // result is the offset of the branch destination instruction (should be 32)
-
+            boolean[] thirtyTwo = {false, false, false, false, false, true};
+            if(cycleCount==6 & Arrays.equals(muxPC.output(true),pc) && (Arrays.equals(to32(thirtyTwo), adderBranch.getOutput()))) {
+            	System.out.println("cycle count: "+ cycleCount);
+            	System.out.println("adderBranch Output: "+ adderBranch.getOutput());
+            	System.out.println("FAIL branch adder's output at cycle "+ cycleCount+ " did not fetch the correct output");
+            	System.out.println("------ adder branch returned "+Binary.toString(muxPC.output(true)));
+            	System.out.println("------ correct data: " + Binary.toString(adderBranch.getOutput()));
+            	cycleFail = true;
+            }
 
             memoryAccess();
 
@@ -207,7 +214,15 @@ public class CPU {
             // Test that when cycleCount is 1, the value that was read from
             // memory (should be 6) is in the register write multiplexor
             // (muxRegWriteData) at input 1
-
+            boolean[] six = {false, true, true};
+            if (cycleCount==1 && (muxRegWriteData.output(true)==registers.getReadReg2()) && (Arrays.equals(to32(six), muxRegWriteData.output(true)))){
+            	System.out.println(muxRegWriteData.output(true));
+            	System.out.println("Cycle Count "+ cycleCount);
+            	System.out.println("FAIL: muxRegWriteData at cycle " + cycleCount + " did not fetch the correct number");
+            	System.out.println("------ muxRegWriteData returned: "+ Binary.toString(muxRegWriteData.output(true)));
+            	System.out.println("------ correct data:             " + Binary.toString(registers.getReadReg2()));
+            	cycleFail = true;
+            }
             writeBack();
 
             cycleCount++;
@@ -218,6 +233,15 @@ public class CPU {
             // ***** PROG. 4 STUDENT MUST ADD
             // Test that when cycleCount is 7, the instruction returned by fetch is
             // the last instruction in the program: STR R5,[R9,#8]
+           
+            boolean lastInstruction[]={false, false, false, false, false, false, false, false,false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, true, false, true, false, true, true };
+            if(cycleCount==7 && (!Arrays.equals(instruction,lastInstruction))) {
+            	System.out.println(cycleCount);
+            	System.out.println("FAIL: cycle " + cycleCount + " did not fetch correct instruction:");
+                System.out.println("------ fetch returned: " + Binary.toString(instruction));
+                System.out.println("------ correct instruction: " + Binary.toString(lastInstruction));
+                cycleFail = true;
+            }
 
 
             op = decode(instruction);
@@ -226,18 +250,23 @@ public class CPU {
             // Test that when cycleCount is 1, the the control signals are correctly
             // set for a LDR instruction
             
-            if(cycleCount!= 1 && (control.Uncondbranch != false || control.RegWrite != true
+            if(cycleCount== 1 && (control.Uncondbranch != false || control.RegWrite != true
                     || control.Reg2Loc != false || control.MemWrite != false || control.MemtoReg != false
                     || control.MemRead != true || control.Branch != false || control.ALUSrc != true
                     || control.ALUControl != 2))
                 {
             	System.out.println("FAIL: LDR cycle " + cycleCount + " after decode, control lines incorrect");
+                cycleFail = true;
                 }
+            
+            if (cycleFail == false) {
+            	System.out.println("CYCLE "+cycleCount+" PASSED!");
+            }
 
         }
         
-        System.out.println("CPU halt after " + cycleCount + " cycles.");
-
+       System.out.println("CPU halt after " + cycleCount + " cycles.");
+        
     }
 
 
@@ -387,7 +416,6 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false; //look back to see if correct
     		control.Branch = true;
-    		System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
      	} else if (Arrays.equals(opCodeB, B)) {
      		control.Reg2Loc = false;
     		control.ALUSrc = false;
@@ -398,14 +426,13 @@ public class CPU {
     		control.MemtoReg = false;
     		control.Uncondbranch = false;
     		control.Branch = true;
-    		System.out.println("CBZ on PC " + Long.toString(Binary.binToUDec(pc)));
      	}
      	
      	
      	/*
      	 * Set Read and Write register addresses
      	 */
-
+     
      	// Source and destination registers
      	boolean[] reg1 = new boolean[5];
      	boolean[] dest=new boolean[5];
@@ -415,7 +442,7 @@ public class CPU {
  		// Initialize source register 1 as bits 9-5
  		for(int i=5;i<10;i++) {
  			reg1[i-5]=instruction[i];
- 		}
+ 		} 		
  		
  		// Initialize destination register as bits 0-4
  		for(int i=0;i<5;i++) {
@@ -437,6 +464,7 @@ public class CPU {
  		muxRegRead2.setInput0(mux0);
  		muxRegRead2.setInput1(mux1);
  		
+ 		
  		// Set Read Register 2 (multiplexor output) conditional upon operation code
  		// Multiplexor Output is 0 if operation is AND, ORR, SUB, ADD --> 1 otherwise
      	if (Arrays.equals(opCode, add)||Arrays.equals(opCode, sub)||Arrays.equals(opCode, and)||Arrays.equals(opCode, orr)) {
@@ -446,13 +474,8 @@ public class CPU {
      	} else if (Arrays.equals(opCodeCBZ, CBZ)) {
      		registers.setRead2Reg(muxRegRead2.output(true));
      	} else if(Arrays.equals(opCode,hlt)) {
-    		System.out.println("op code was hlt");
     		return false;
     	} else {
-    		System.out.println("ERROR: CPu has run into unidentified opcode: ");
-    		for (int k = 0; k < instruction.length; k++) {
-    			System.out.print(instruction[k]);
-    		}
     		throw new IllegalArgumentException("ERROR: The CPU is force quiting now");
     		// System.out.println("Unknown argument was presented to the CPU.");
     	}
@@ -574,6 +597,7 @@ public class CPU {
         */
     	
     	//made the setInput1 to muxALUb.output(false) because inside that is the readData2
+    	
     	muxRegWriteData.setInput1(muxALUb.output(false));
     	
     	if(control.MemtoReg==false) {
