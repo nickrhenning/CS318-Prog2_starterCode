@@ -227,56 +227,90 @@ public class CacheMemory {
     boolean[] setBits = new boolean[numSetBits];
     for (int i = numByteBits; i < numByteBits + numSetBits; i++) {
       setBits[i - numByteBits] = address[i];
-      System.out.println("setBits[" + Integer.toString(i - numByteBits) + "] is "
-          + String.valueOf(setBits[i - numByteBits]));
+      // System.out.println("setBits[" + Integer.toString(i - numByteBits) + "] is "
+      //    + String.valueOf(setBits[i - numByteBits]));
     }
 
     long cacheSet = Binary.binToUDec(setBits);
     System.out.println("Cache set is " + Long.toString(cacheSet));
 
-    boolean[] tagBits = new boolean[numTagBits];
     // Get tag from the address that was passed in
+    boolean[] tagBits = new boolean[numTagBits];
     for (int i = numByteBits + numSetBits; i < numByteBits + numSetBits + numTagBits; i++) {
       tagBits[i - numByteBits - numSetBits] = address[i];
-      System.out.println("tagbits[" + Integer.toString(i - numByteBits - numSetBits) + "] is "
-          + String.valueOf(tagBits[i - numByteBits - numSetBits]));
+      // System.out.println("tagbits[" + Integer.toString(i - numByteBits - numSetBits) + "] is "
+      //    + String.valueOf(tagBits[i - numByteBits - numSetBits]));
     }
 
     /*
      * Determine whether or not the line that corresponds with the requested memory address is
      * currently in the cache
      */
-
+    int lineCount = 0;
     boolean inCache = false;
     // Iterate through the correct Cache Set
     for (int i = 0; i < cache[toIntExact(cacheSet)].size(); i++) {
-      System.out.println("\n Line " + Integer.toString(i) + ":");
+//      System.out.println("\n Line " + Integer.toString(i) + ":");
+      lineCount++;
       // Get the tag the line
       boolean[] lineTag = cache[toIntExact(cacheSet)].getLine(i).getTag();
       // If the tag from the line equals the tag from the parameter, then the line that corresponds
       // to the memory address is currently in the cache
       if (Arrays.equals(lineTag, tagBits)) {
-        System.out.println("Line sorresponding to the memory address is currently in the cache");
+        System.out.println("Line corresponding to the memory address is currently in the cache");
         inCache = true;
         // System.exit(0);
       }
     }
-    
-    // If the line corresponding to the memory address is not in the cache, call readLineFromMemory 
-    if (inCache==false) {
-      readLineFromMemory(address, toIntExact(cacheSet), tagBits);
+    // if it is in the cache the hit count increases
+
+    CacheLine myCacheLine = new CacheLine(8, numTagBits);
+    // If the line corresponding to the memory address is not in the cache, call readLineFromMemory
+    if (inCache == false) {
+//      System.out.println("Memory Address is: " + Binary.toString(address));
+      myCacheLine = readLineFromMemory(address, toIntExact(cacheSet), tagBits);
+      
     }
+    // System.out.println(Binary.toString(toIntExact(cacheSet)));
 
-    System.exit(0);
+//    System.exit(0);
 
-    // TODO:
     // Update CacheMemory data members (requestCount, hitCount, hitCost)
     // and CacheLine data members (using the various set methods)
     // as needed for tracking cache hit rate and implementing the
     // least recently used replacement algorithm in the cache set.
+    if (inCache == false) {
+      hitCount++;
+      hitCost = lineCount - 1;
+    }
+    requestCount++;
 
+
+    // Returns a copy of the WORD_SIZE bits that correspond with the requested memory address 
+    
+    System.out.println("Returning a copy of the " + Integer.toString(WORD_SIZE*8) + " bits that correspond"
+        + " with memory address: " + Long.toString(Binary.binToUDec(address)));
+    
+    // System.out.println(Integer.toString(myCacheLine.size()));
+   
+    boolean[] result = new boolean[32];
+    
+    for (int i=0; i < myCacheLine.getData().length; i++) {
+      for (int j = 0; j < myCacheLine.getData()[i].length; j++) {
+        int tracker = (8*i) + j;
+        // System.out.println("tracker is " + Integer.toString(tracker));
+        // Not sure why the tracker is getting above 31
+        if (tracker >= 32) {
+          break;
+        }
+        result[tracker] = myCacheLine.getData()[i][j];
+      }
+    }
+
+    System.out.println("Returning: " + Binary.toString(result));
+            
     // replace this placeholder return with the data copied from the cache line
-    return new boolean[32];
+    return result;
   }
 
 
@@ -294,18 +328,90 @@ public class CacheMemory {
    * @return The line that was read from memory. This line is also written into the cache.
    */
   private CacheLine readLineFromMemory(boolean[] address, int setNum, boolean[] tagBits) {
-
+    
     // Use the LRU (least recently used) replacement scheme to select a line
     // within the set.
+    int leastRecent = -1000000;
+    boolean hasEmpty = false;
 
+    for (int i = 0; i < cache[setNum].size(); i++) {
+      if (!cache[setNum].getLine(i).isValid()) {
+        hasEmpty = true;
+        System.out.println("(a) least recent updated to " + Integer.toString(i));
+        leastRecent = i;
+      }
+    }
+
+    if (!hasEmpty) {
+      System.out.println("Cache had no empty slot");
+      for (int i = 0; i < cache[setNum].size(); i++) {
+        System.out.println("cache[setNum].getLine(i).getLastUsed() is: " + Integer.toString(cache[setNum].getLine(i).getLastUsed()));
+        if (leastRecent < cache[setNum].getLine(i).getLastUsed()) {
+          System.out.println("(b) least recent updated to " + Integer.toString(i));
+          leastRecent = i;
+          break;
+        }
+      }
+    } else {
+      System.out.println("Cache had an empty slot");
+    }
+    
+    System.out.println("Least recently used is " + Integer.toString(leastRecent));
+    
     // Read the line from memory. The memory address to read is the
     // first memory address of the line that contains the requested address.
     // The MainMemory read method should be called.
+    
+    System.out.println("Address is: " + Binary.toString(address));
+    System.out.println("Address as Long is: " + Long.toString(Binary.binToUDec(address)));
+    
+    System.out.println("Num Byte Bits are: " + Integer.toString(numByteBits));
+    
+    double byteBits = (double)numByteBits;
+    double two = 2;
+    
+    int lineSize = (int)Math.pow(two, byteBits);
+    System.out.println("Line size is: " + Integer.toString(lineSize));
+    
+    /*
+    boolean[][] memData = new boolean[0][0];
+    try {
+      memData = mainMemory.read(address, lineSize);
+    } catch(Exception e) {
+      e.getMessage();
+    }
+    */
 
+    boolean[][] memData = mainMemory.read(address, lineSize);
+    boolean[][] dataCopy = new boolean[lineSize][8];
+    
+    System.out.println(dataCopy.length);
+    System.out.println(memData.length);
+    System.out.println(dataCopy[0].length);
+    System.out.println(memData[0].length);
+    
+    for (int i = 0; i < memData.length; i++) {
+//      System.out.println(dataCopy[i].length);
+//      System.out.println(memData[i].length);
+      for (int j = 0; j < memData[i].length; j++) {
+        // System.out.println("I is " + Integer.toString(i) + " and j is " + Integer.toString(j));
+        dataCopy[i][j] = memData[i][j];
+      }
+    }
+    
     // Copy the line read from memory into the cache
+    
+    System.out.println("Size of line read from memory:" + Integer.toString(cache[setNum].getLine(leastRecent).size()));
+    // System.out.println("Size of line read from memory:" + Integer.toString(cache[setNum].getLine(leastRecent).size()));
+    cache[setNum].getLine(leastRecent).setData(dataCopy);
+    cache[setNum].getLine(leastRecent).setTag(tagBits);
+    cache[setNum].getLine(leastRecent).setValid();
+    System.out.println("Is valid is: " + String.valueOf(cache[setNum].getLine(leastRecent).isValid()));
 
-    // replace this placeholder return with the correct line to return
-    return new CacheLine(4, 2);
+    
+    // Return the requested line of data
+    
+    return cache[setNum].getLine(leastRecent);
 
   }
 
