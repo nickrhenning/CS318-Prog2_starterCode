@@ -320,37 +320,33 @@ public class CacheMemory {
 	 * to the next line over once address is put into the LRU line 
 	 */
 	  
-	  int lastUsed=0;
-	  int isFullCheck=0;
-	  int count=0;
-	  int addressToInt []=new int[address.length];
-	
-	 
-	  System.out.println("Cache Set: "+setNum);
-	  //loops through the cache set to see if there is a open line if so the address is set into the data
-	  for(int i=0;i<cache[setNum].size();i++) {
-		  if (cache[setNum].getLine(i).getData()==null) {
-			  cache[setNum].getLine(i).setData(mainMemory.read(address,address.length));
-			  if(count==0) {
-				  cache[setNum].getLine(i).setLastUsed(i);
-				  isFullCheck++;
-			  }
-			  count++;
-			  System.out.println("Line read into "+ i +" line: "+ Binary.toString(address));
-			 
-		  }
-		  
-		  
-		  isFullCheck++;
-		  //if the cache set is full the new data takes the place of the LRU line
-		  if(isFullCheck==cache[setNum].size()) {
-			  cache[setNum].getLine(lastUsed).setData(mainMemory.read(address,address.length));
-			  lastUsed++;
-			  System.out.println("Line read into "+lastUsed);
+	  int leastRecent = -1;
+	  int index = 0;
+	  boolean hasEmpty = false;
+	  
+	  for(int i=0;i<cache[setNum].size(); i++) {
+		  if(!cache[setNum].getLine(i).isValid()) {
+			  hasEmpty = true;
+			  index = i;
 		  }
 	  }
 	  
-	  return new cacheSet.getLine();
+	  if(!hasEmpty) {
+		  for(int i=0; i<cache[setNum].size(); i++) {
+			  if(leastRecent < cache[setNum].getLine(i).getLastUsed()) {
+				  leastRecent = i;
+			  }
+		  }
+	  }
+	  boolean [][] temp = mainMemory.read(address,numByteBits);
+	  System.out.println("Temp Length: "+Integer.toString(temp[0].length));
+	  System.out.println("Memory Length: "+ Integer.toString(mainMemory.read(address,numByteBits)[0].length));
+	  cache[setNum].getLine(index).setData(temp);
+	  
+	  
+	  
+	  
+	  return cache[setNum].getLine(index);
 
   }
 
