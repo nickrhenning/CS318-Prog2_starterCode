@@ -242,12 +242,12 @@ public class CacheMemory {
      * Determine whether or not the line that corresponds with the requested memory address is
      * currently in the cache
      */
-    int lineCount = 0;
+    int tempHitCost = 0;
     boolean inCache = false;
     // Iterate through the correct Cache Set
     for (int i = 0; i < cache[toIntExact(cacheSet)].size(); i++) {
       
-      lineCount++;
+      tempHitCost++;
       
       // Get the tag the line
       boolean[] lineTag = cache[toIntExact(cacheSet)].getLine(i).getTag();
@@ -271,19 +271,35 @@ public class CacheMemory {
     // and CacheLine data members (using the various set methods)
     // as needed for tracking cache hit rate and implementing the
     // least recently used replacement algorithm in the cache set.
-    if (inCache == false) {
+    
+    // Update CacheMemory data members
+    if (inCache == true) {
       hitCount++;
-      // hitCost = lineCount - 1;
-      hitCost += lineCount;
-      // System.out.println("hitCost incremented by: " + Integer.toString(lineCount));
+      hitCost += tempHitCost;
+      System.out.println("hitCost incremented by: " + Integer.toString(tempHitCost));
+      requestCount++;
+    } else if (inCache == false) {
+      requestCount++;
+    } else {
+      throw new IllegalArgumentException("inCache must be either true or false.");
     }
-    requestCount++;
+    
+    // Update CacheLine data members
+    
 
 
     // Return a copy of the WORD_SIZE bits that correspond with the requested memory address 
     boolean[] result = new boolean[32];
     
-    for (int i=0; i < myCacheLine.getData().length; i++) {
+    // Initialize offset
+    boolean[] offset = new boolean[numByteBits];
+    for (int i = 0; i < numByteBits; i++) {
+      offset[i] = address[i];
+    }
+    int offsetNum = (int)Binary.binToUDec(offset); 
+    System.out.println("Offset is: " + Integer.toString(offsetNum));
+    
+    for (int i=offsetNum; i < myCacheLine.getData().length; i++) {
       for (int j = 0; j < myCacheLine.getData()[i].length; j++) {
         int tracker = (8*i) + j;
         
@@ -349,11 +365,16 @@ public class CacheMemory {
     int lineSize = (int)Math.pow(two, byteBits);
     
     // Set byteBits to 0 to prevent reading over
+    boolean[] tempAddress = new boolean[address.length];
+    for (int i = 0; i < tempAddress.length; i++) {
+      tempAddress[i] = address[i];
+    }
     for (int i = 0; i < numByteBits; i++) {
-      address[i] = false;
+      tempAddress[i] = false;
     }
     
-    boolean[][] memData = mainMemory.read(address, lineSize);
+    // Read from the address with the byteBits as 0 
+    boolean[][] memData = mainMemory.read(tempAddress, lineSize);
     boolean[][] dataCopy = new boolean[lineSize][8];
     
     for (int i = 0; i < memData.length; i++) {
